@@ -95,7 +95,7 @@ class Company {
    * searchTerms should at most contain three keys: name, minEmployees and maxEmployees;
    * 
    * if minEmployees > maxEmployees, throw BadRequestError;
-   * return {whereClause:`name=$1 AND...`, values: [...]}
+   * return {whereClause:`name=$1 AND num_employees <= $2 AND ...`, values: [...]}
    */
   static _makeWhereClause(searchTerms) {
     let clauses = [];

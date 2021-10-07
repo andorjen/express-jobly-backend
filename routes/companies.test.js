@@ -41,6 +41,17 @@ describe("POST /companies", function () {
     expect(resp.body).toEqual({
       company: newCompany,
     });
+
+    const compRes = await db.query(
+      `SELECT handle, name, logo_url
+      FROM companies
+      WHERE handle='new'`
+    );
+    expect(compRes.rows[0]).toEqual({
+      handle: "new",
+      name: "New",
+      logo_url: "http://new.img"
+    });
   });
 
   test("unauthorized for non-admin users", async function () {
@@ -55,6 +66,12 @@ describe("POST /companies", function () {
         status: 401
       }
     });
+    const compRes = await db.query(
+      `SELECT handle, name, logo_url
+      FROM companies
+      WHERE handle='new'`
+    );
+    expect(compRes.rows).toEqual([])
   });
 
   test("unauthorized for invalid tokens", async function () {
@@ -277,6 +294,17 @@ describe("PATCH /companies/:handle", function () {
         logoUrl: "http://c1.img",
       },
     });
+    const compRes = await db.query(
+      `SELECT handle, name, logo_url
+      FROM companies
+      WHERE handle='c1'`
+    );
+    expect(compRes.rows[0]).toEqual({
+      handle: "c1",
+      name: "C1-new",
+      logo_url: "http://c1.img"
+    });
+
   });
 
   test("unauthorized for non-admin users", async function () {
@@ -292,6 +320,17 @@ describe("PATCH /companies/:handle", function () {
         status: 401
       }
     });
+    const compRes = await db.query(
+      `SELECT handle, name, logo_url
+      FROM companies
+      WHERE handle='c1'`
+    );
+    expect(compRes.rows[0]).toEqual({
+      handle: "c1",
+      name: "C1",
+      logo_url: "http://c1.img"
+    });
+
   });
 
   test("unauth for anon", async function () {
@@ -342,6 +381,14 @@ describe("DELETE /companies/:handle", function () {
       .delete(`/companies/c1`)
       .set("authorization", `Bearer ${u4AdminToken}`);
     expect(resp.body).toEqual({ deleted: "c1" });
+
+    const compRes = await db.query(
+      `SELECT handle, name, logo_url
+      FROM companies
+      WHERE handle='c1'`
+    );
+    expect(compRes.rows).toEqual([]);
+
   });
 
   test("unauthorized for non-admin users", async function () {
@@ -353,6 +400,17 @@ describe("DELETE /companies/:handle", function () {
         message: "Unauthorized",
         status: 401
       }
+    });
+
+    const compRes = await db.query(
+      `SELECT handle, name, logo_url
+      FROM companies
+      WHERE handle='c1'`
+    );
+    expect(compRes.rows[0]).toEqual({
+      handle: "c1",
+      name: "C1",
+      logo_url: "http://c1.img"
     });
   });
 
@@ -368,4 +426,18 @@ describe("DELETE /companies/:handle", function () {
       .set("authorization", `Bearer ${u4AdminToken}`);
     expect(resp.statusCode).toEqual(404);
   });
+
+  test("not found if company already deleted", async function () {
+    await db.query(
+      `DELETE
+      FROM companies
+      WHERE handle = 'c1'`
+    );
+
+    const resp = await request(app)
+      .delete(`/companies/c1`)
+      .set("authorization", `Bearer ${u4AdminToken}`);
+    expect(resp.statusCode).toEqual(404);
+  });
+
 });

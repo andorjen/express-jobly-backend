@@ -42,6 +42,11 @@ function ensureLoggedIn(req, res, next) {
   }
 }
 
+
+/** Middleware to use when they must be admins.
+ *
+ * If not, raises Unauthorized.
+ */
 function ensureAdmin(req, res, next) {
   try {
     if (!res.locals.user.isAdmin === true) throw new UnauthorizedError();
@@ -51,16 +56,36 @@ function ensureAdmin(req, res, next) {
   }
 }
 
+
+/** Middleware to use when they must be admins or the same user as the appears in the parameter.
+ * 
+ * If not, raises Unauthorized.
+ * If req.body contains password, unauthorize for admins.
+ */
 function ensureUserOrAdmin(req, res, next) {
   try {
-    if (!(res.locals.user.username === req.params.username || res.locals.user.isAdmin === true)) {
-      throw new UnauthorizedError();
+    if (req.body.password) {
+      // console.log("there is password in req.body")
+      // console.log("res.locals.user.username", res.locals.user.username)
+      // console.log("req.params.username", req.params.username)
+
+      if (!(res.locals.user.username === req.params.username)) {
+        // console.log('hit unequal situation')
+        throw new UnauthorizedError();
+      }
+      return next();
     }
-    return next();
+    else {
+      if (!(res.locals.user.username === req.params.username || res.locals.user.isAdmin === true)) {
+        throw new UnauthorizedError();
+      }
+      return next();
+    }
   } catch (err) {
     return next(err);
   }
 }
+
 
 
 module.exports = {
