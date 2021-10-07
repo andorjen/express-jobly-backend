@@ -31,7 +31,7 @@ describe("create", function () {
     expect(company).toEqual(newCompany);
 
     const result = await db.query(
-          `SELECT handle, name, description, num_employees, logo_url
+      `SELECT handle, name, description, num_employees, logo_url
            FROM companies
            WHERE handle = 'new'`);
     expect(result.rows).toEqual([
@@ -87,6 +87,108 @@ describe("findAll", function () {
   });
 });
 
+describe("filterSearch", function () {
+  test("works with one filter", async function () {
+    let companies = await Company.filterSearch({ name: "c" });
+    expect(companies).toEqual([
+      {
+        handle: "c1",
+        name: "C1",
+        description: "Desc1",
+        numEmployees: 1,
+        logoUrl: "http://c1.img",
+      },
+      {
+        handle: "c2",
+        name: "C2",
+        description: "Desc2",
+        numEmployees: 2,
+        logoUrl: "http://c2.img",
+      },
+      {
+        handle: "c3",
+        name: "C3",
+        description: "Desc3",
+        numEmployees: 3,
+        logoUrl: "http://c3.img",
+      },
+    ]);
+  });
+
+  test("works with two filters", async function () {
+    let companies = await Company.filterSearch({ minEmployees: 1, maxEmployees: 2 });
+    expect(companies).toEqual([
+      {
+        handle: "c1",
+        name: "C1",
+        description: "Desc1",
+        numEmployees: 1,
+        logoUrl: "http://c1.img",
+      },
+      {
+        handle: "c2",
+        name: "C2",
+        description: "Desc2",
+        numEmployees: 2,
+        logoUrl: "http://c2.img",
+      }
+    ]);
+  });
+
+  test("works with three filters", async function () {
+    let companies = await Company.filterSearch({ name: "c2", minEmployees: 1, maxEmployees: 2 });
+    expect(companies).toEqual([
+      {
+        handle: "c2",
+        name: "C2",
+        description: "Desc2",
+        numEmployees: 2,
+        logoUrl: "http://c2.img",
+      }
+    ]);
+  });
+
+});
+
+
+describe("test helper function _makeWhereClause", function () {
+
+  test("pass in three valid filters", function () {
+    const result = Company._makeWhereClause({
+      name: "c",
+      minEmployees: 1,
+      maxEmployees: 3
+    });
+    expect(result).toEqual({
+      whereClause: "name ILIKE $1 AND num_employees >= $2 AND num_employees <= $3",
+      values: ["%c%", 1, 3]
+    });
+  });
+
+  test("pass in one valid filter", function () {
+    const result = Company._makeWhereClause({
+      minEmployees: 1
+    });
+    expect(result).toEqual({
+      whereClause: "num_employees >= $1",
+      values: [1]
+    });
+  });
+
+  test("pass in minEmployees is higher than maxEmployees", function () {
+    try {
+      Company._makeWhereClause({
+        name: "c",
+        minEmployees: 11,
+        maxEmployees: 2
+      })
+    } catch (err) {
+      expect(err instanceof BadRequestError).toBeTruthy();
+    }
+
+  });
+});
+
 /************************************** get */
 
 describe("get", function () {
@@ -129,7 +231,7 @@ describe("update", function () {
     });
 
     const result = await db.query(
-          `SELECT handle, name, description, num_employees, logo_url
+      `SELECT handle, name, description, num_employees, logo_url
            FROM companies
            WHERE handle = 'c1'`);
     expect(result.rows).toEqual([{
@@ -156,7 +258,7 @@ describe("update", function () {
     });
 
     const result = await db.query(
-          `SELECT handle, name, description, num_employees, logo_url
+      `SELECT handle, name, description, num_employees, logo_url
            FROM companies
            WHERE handle = 'c1'`);
     expect(result.rows).toEqual([{
@@ -193,7 +295,7 @@ describe("remove", function () {
   test("works", async function () {
     await Company.remove("c1");
     const res = await db.query(
-        "SELECT handle FROM companies WHERE handle='c1'");
+      "SELECT handle FROM companies WHERE handle='c1'");
     expect(res.rows.length).toEqual(0);
   });
 

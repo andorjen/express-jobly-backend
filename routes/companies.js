@@ -6,10 +6,11 @@ const jsonschema = require("jsonschema");
 const express = require("express");
 
 const { BadRequestError } = require("../expressError");
-const { ensureLoggedIn } = require("../middleware/auth");
+const { ensureLoggedIn, ensureAdmin } = require("../middleware/auth");
 const Company = require("../models/company");
 
 const companyNewSchema = require("../schemas/companyNew.json");
+const companyFilterSchema = require("../schemas/companyFilter.json");
 const companyUpdateSchema = require("../schemas/companyUpdate.json");
 
 const router = new express.Router();
@@ -21,10 +22,10 @@ const router = new express.Router();
  *
  * Returns { handle, name, description, numEmployees, logoUrl }
  *
- * Authorization required: login
+ * Authorization required: login , isAdmin === true
  */
 
-router.post("/", ensureLoggedIn, async function (req, res, next) {
+router.post("/", ensureLoggedIn, ensureAdmin, async function (req, res, next) {
   const validator = jsonschema.validate(req.body, companyNewSchema);
   if (!validator.valid) {
     const errs = validator.errors.map(e => e.stack);
@@ -47,6 +48,41 @@ router.post("/", ensureLoggedIn, async function (req, res, next) {
  */
 
 router.get("/", async function (req, res, next) {
+  if (Object.keys(req.query).length > 0) {
+    const validator = jsonschema.validate(req.query, companyFilterSchema);
+
+    if (!validator.valid) {
+      const errs = validator.errors.map(e => e.stack);
+      throw new BadRequestError(errs);
+    }
+
+    let { name, minEmployees, maxEmployees } = req.query;
+
+    let searchTerms = {};
+
+    if (name) {
+      searchTerms["name"] = name;
+    }
+    if (minEmployees) {
+      if (Number(minEmployees)) {
+        searchTerms["minEmployees"] = Number(minEmployees);
+      } else {
+        throw new BadRequestError("minEmployees must be a number")
+      }
+    }
+    if (maxEmployees) {
+      if (Number(maxEmployees)) {
+        searchTerms["maxEmployees"] = Number(maxEmployees);
+      } else {
+        throw new BadRequestError("maxEmployees must be a number")
+      }
+    }
+
+    const companies = await Company.filterSearch(searchTerms);
+    return res.json({ companies });
+  }
+  // console.log(req.query, "req query object")
+
   const companies = await Company.findAll();
   return res.json({ companies });
 });
@@ -72,10 +108,10 @@ router.get("/:handle", async function (req, res, next) {
  *
  * Returns { handle, name, description, numEmployees, logo_url }
  *
- * Authorization required: login
+ * Authorization required: login, isAdmin === true
  */
 
-router.patch("/:handle", ensureLoggedIn, async function (req, res, next) {
+router.patch("/:handle", ensureLoggedIn, ensureAdmin, async function (req, res, next) {
   const validator = jsonschema.validate(req.body, companyUpdateSchema);
   if (!validator.valid) {
     const errs = validator.errors.map(e => e.stack);
@@ -88,10 +124,10 @@ router.patch("/:handle", ensureLoggedIn, async function (req, res, next) {
 
 /** DELETE /[handle]  =>  { deleted: handle }
  *
- * Authorization: login
+ * Authorization: login, isAdmin === true
  */
 
-router.delete("/:handle", ensureLoggedIn, async function (req, res, next) {
+router.delete("/:handle", ensureLoggedIn, ensureAdmin, async function (req, res, next) {
   await Company.remove(req.params.handle);
   return res.json({ deleted: req.params.handle });
 });
