@@ -152,3 +152,48 @@ describe("POST /jobs", function () {
         })
     });
 });
+
+/************************************** GET /jobs without filter */
+
+describe("GET /jobs", function () {
+    test("ok for anon", async function () {
+        const resp = await request(app).get("/jobs");
+        expect(resp.body).toEqual({
+            jobs: [
+                {
+                    id: expect.any(Number),
+                    title: 'testJob1',
+                    salary: 1000,
+                    equity: "0",
+                    companyHandle: 'c1'
+                },
+                {
+                    id: expect.any(Number),
+                    title: 'testJob2',
+                    salary: 2000,
+                    equity: "0.002",
+                    companyHandle: 'c2'
+                },
+                {
+                    id: expect.any(Number),
+                    title: 'testJob3',
+                    salary: 3000,
+                    equity: null,
+                    companyHandle: 'c3'
+                }
+
+            ]
+        });
+    });
+
+    test("fails: test next() handler", async function () {
+        // there's no normal failure event which will cause this route to fail ---
+        // thus making it hard to test that the error-handler works with it. This
+        // should cause an error, all right :)
+        await db.query("DROP TABLE jobs CASCADE");
+        const resp = await request(app)
+            .get("/jobs")
+            .set("authorization", `Bearer ${u1Token}`);
+        expect(resp.statusCode).toEqual(500);
+    });
+});
