@@ -74,7 +74,8 @@ router.get("/", async function (req, res, next) {
             }
         }
         if (hasEquity) {
-            if (hasEquity === "true" || "false") {
+
+            if (hasEquity === "true" || hasEquity === "false") {
                 searchTerms["hasEquity"] = hasEquity;
             } else {
                 throw new BadRequestError("hasEquity must be a boolean");

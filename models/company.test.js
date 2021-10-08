@@ -12,6 +12,16 @@ const {
 
 beforeAll(commonBeforeAll);
 beforeEach(commonBeforeEach);
+beforeEach(async function () {
+  await db.query(`
+  INSERT INTO jobs(title, 
+                  salary, 
+                  equity, 
+                  company_handle)
+  VALUES ($1, $2, $3, $4)`,
+    ['testJob1', 1000, 0.001, 'c1']);
+
+});
 afterEach(commonAfterEach);
 afterAll(commonAfterAll);
 
@@ -200,6 +210,14 @@ describe("get", function () {
       description: "Desc1",
       numEmployees: 1,
       logoUrl: "http://c1.img",
+      jobs: [
+        {
+          id: expect.any(Number),
+          title: "testJob1",
+          salary: 1000,
+          equity: "0.001"
+        }
+      ]
     });
   });
 

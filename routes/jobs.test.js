@@ -260,6 +260,26 @@ describe("GET /jobs with filters", function () {
         });
     });
 
+    test("bad request for anon with invalid minSalary filter", async function () {
+        const resp = await request(app).get("/jobs?minSalary=onemillion");
+        expect(resp.body).toEqual({
+            error: {
+                message: "minSalary must be a number",
+                status: 400
+            }
+        });
+    });
+
+    test("bad request for anon with invalid hasEquity filter", async function () {
+        const resp = await request(app).get("/jobs?hasEquity=onemillion");
+        expect(resp.body).toEqual({
+            error: {
+                message: "hasEquity must be a boolean",
+                status: 400
+            }
+        });
+    });
+
     test("bad req for passing in extra filters", async function () {
         const resp = await request(app).get("/jobs?title=job&color=red");
         expect(resp.body).toEqual({
