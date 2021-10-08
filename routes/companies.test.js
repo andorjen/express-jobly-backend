@@ -96,7 +96,7 @@ describe("POST /companies", function () {
         numEmployees: 10,
       })
       .set("authorization", `Bearer ${u4AdminToken}`);
-    expect(resp.statusCode).toEqual(400);
+    expect(resp.statusCode).toEqual(400);   //test for the entire body
   });
 
   test("bad request with invalid data", async function () {
@@ -272,7 +272,14 @@ describe("GET /companies/:handle", function () {
   test("not found for no such company", async function () {
     const resp = await request(app).get(`/companies/nope`);
     expect(resp.statusCode).toEqual(404);
+    expect(resp.body).toEqual({
+      error: {
+        message: "No company: nope",
+        status: 404
+      }
+    });
   });
+
 });
 
 /************************************** PATCH /companies/:handle */
@@ -340,6 +347,12 @@ describe("PATCH /companies/:handle", function () {
         name: "C1-new",
       });
     expect(resp.statusCode).toEqual(401);
+    expect(resp.body).toEqual({
+      error: {
+        message: "Unauthorized",
+        status: 401
+      }
+    });
   });
 
   test("not found on no such company", async function () {
@@ -350,6 +363,12 @@ describe("PATCH /companies/:handle", function () {
       })
       .set("authorization", `Bearer ${u4AdminToken}`);
     expect(resp.statusCode).toEqual(404);
+    expect(resp.body).toEqual({
+      error: {
+        message: "No company: nope",
+        status: 404
+      }
+    });
   });
 
   test("bad request on handle change attempt", async function () {
@@ -360,6 +379,12 @@ describe("PATCH /companies/:handle", function () {
       })
       .set("authorization", `Bearer ${u4AdminToken}`);
     expect(resp.statusCode).toEqual(400);
+    expect(resp.body).toEqual({
+      error: {
+        message: ["instance is not allowed to have the additional property \"handle\""],
+        status: 400
+      }
+    });
   });
 
   test("bad request on invalid data", async function () {
@@ -370,6 +395,12 @@ describe("PATCH /companies/:handle", function () {
       })
       .set("authorization", `Bearer ${u4AdminToken}`);
     expect(resp.statusCode).toEqual(400);
+    expect(resp.body).toEqual({
+      error: {
+        message: ["instance.logoUrl does not conform to the \"uri\" format"],
+        status: 400
+      }
+    });
   });
 });
 
@@ -418,6 +449,12 @@ describe("DELETE /companies/:handle", function () {
     const resp = await request(app)
       .delete(`/companies/c1`);
     expect(resp.statusCode).toEqual(401);
+    expect(resp.body).toEqual({
+      error: {
+        message: "Unauthorized",
+        status: 401
+      }
+    });
   });
 
   test("not found for no such company", async function () {
@@ -425,6 +462,12 @@ describe("DELETE /companies/:handle", function () {
       .delete(`/companies/nope`)
       .set("authorization", `Bearer ${u4AdminToken}`);
     expect(resp.statusCode).toEqual(404);
+    expect(resp.body).toEqual({
+      error: {
+        message: "No company: nope",
+        status: 404
+      }
+    });
   });
 
   test("not found if company already deleted", async function () {
@@ -438,6 +481,12 @@ describe("DELETE /companies/:handle", function () {
       .delete(`/companies/c1`)
       .set("authorization", `Bearer ${u4AdminToken}`);
     expect(resp.statusCode).toEqual(404);
+    expect(resp.body).toEqual({
+      error: {
+        message: "No company: c1",
+        status: 404
+      }
+    });
   });
 
 });

@@ -24,10 +24,10 @@ const router = express.Router();
  * This returns the newly created user and an authentication token for them:
  *  {user: { username, firstName, lastName, email, isAdmin }, token }
  *
- * Authorization required: login
+ * Authorization required: isAdmin
  **/
 
-router.post("/", ensureLoggedIn, ensureAdmin, async function (req, res, next) {
+router.post("/", ensureAdmin, async function (req, res, next) {
   const validator = jsonschema.validate(req.body, userNewSchema);
   if (!validator.valid) {
     const errs = validator.errors.map(e => e.stack);
@@ -47,7 +47,7 @@ router.post("/", ensureLoggedIn, ensureAdmin, async function (req, res, next) {
  * Authorization required: login
  **/
 
-router.get("/", ensureLoggedIn, ensureAdmin, async function (req, res, next) {
+router.get("/", ensureAdmin, async function (req, res, next) {
   const users = await User.findAll();
   return res.json({ users });
 });
@@ -57,10 +57,10 @@ router.get("/", ensureLoggedIn, ensureAdmin, async function (req, res, next) {
  *
  * Returns { username, firstName, lastName, isAdmin }
  *
- * Authorization required: login as the username or admin
+ * Authorization required: current user or admin
  **/
 
-router.get("/:username", ensureLoggedIn, ensureUserOrAdmin, async function (req, res, next) {
+router.get("/:username", ensureUserOrAdmin, async function (req, res, next) {
 
   // console.log(res.locals, "res.locals")
 
@@ -76,10 +76,10 @@ router.get("/:username", ensureLoggedIn, ensureUserOrAdmin, async function (req,
  *
  * Returns { username, firstName, lastName, email, isAdmin }
  *
- * Authorization required: login as the username or admin
+ * Authorization required: current user or admin
  **/
 
-router.patch("/:username", ensureLoggedIn, ensureUserOrAdmin, async function (req, res, next) {
+router.patch("/:username", ensureUserOrAdmin, async function (req, res, next) {
 
   const validator = jsonschema.validate(req.body, userUpdateSchema);
   if (!validator.valid) {
@@ -99,7 +99,7 @@ router.patch("/:username", ensureLoggedIn, ensureUserOrAdmin, async function (re
  * Authorization required: login as the username or admin
  **/
 
-router.delete("/:username", ensureLoggedIn, ensureUserOrAdmin, async function (req, res, next) {
+router.delete("/:username", ensureUserOrAdmin, async function (req, res, next) {
   await User.remove(req.params.username);
   return res.json({ deleted: req.params.username });
 });

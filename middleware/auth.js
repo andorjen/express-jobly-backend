@@ -49,7 +49,7 @@ function ensureLoggedIn(req, res, next) {
  */
 function ensureAdmin(req, res, next) {
   try {
-    if (!res.locals.user.isAdmin === true) throw new UnauthorizedError();
+    if (res.locals.user?.isAdmin !== true) throw new UnauthorizedError();
     return next();
   } catch (err) {
     return next(err);
@@ -62,14 +62,16 @@ function ensureAdmin(req, res, next) {
  * If not, raises Unauthorized.
  * If req.body contains password, unauthorize for admins.
  */
-function ensureUserOrAdmin(req, res, next) {
+function ensureUserOrAdmin(req, res, next) {  // may allow admins to change password
   try {
+    if (!res.locals.user) throw new UnauthorizedError();
+
     if (req.body.password) {
       // console.log("there is password in req.body")
       // console.log("res.locals.user.username", res.locals.user.username)
       // console.log("req.params.username", req.params.username)
 
-      if (!(res.locals.user.username === req.params.username)) {
+      if (res.locals.user.username !== req.params.username) {
         // console.log('hit unequal situation')
         throw new UnauthorizedError();
       }

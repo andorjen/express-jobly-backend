@@ -119,6 +119,12 @@ describe("POST /users", function () {
         isAdmin: true,
       });
     expect(resp.statusCode).toEqual(401);
+    expect(resp.body).toEqual({
+      error: {
+        message: "Unauthorized",
+        status: 401
+      }
+    });
   });
 
   test("bad request if missing data", async function () {
@@ -129,6 +135,17 @@ describe("POST /users", function () {
       })
       .set("authorization", `Bearer ${u4AdminToken}`);
     expect(resp.statusCode).toEqual(400);
+    expect(resp.body).toEqual({
+      error: {
+        message: [
+          "instance requires property \"firstName\"",
+          "instance requires property \"lastName\"",
+          "instance requires property \"password\"",
+          "instance requires property \"email\"",
+        ],
+        status: 400
+      }
+    });
   });
 
   test("bad request if invalid data", async function () {
@@ -144,6 +161,12 @@ describe("POST /users", function () {
       })
       .set("authorization", `Bearer ${u4AdminToken}`);
     expect(resp.statusCode).toEqual(400);
+    expect(resp.body).toEqual({
+      error: {
+        message: ["instance.email does not conform to the \"email\" format"],
+        status: 400
+      }
+    });
   });
 });
 
@@ -205,6 +228,12 @@ describe("GET /users", function () {
     const resp = await request(app)
       .get("/users");
     expect(resp.statusCode).toEqual(401);
+    expect(resp.body).toEqual({
+      error: {
+        message: "Unauthorized",
+        status: 401
+      }
+    });
   });
 
   test("fails: test next() handler", async function () {
@@ -268,13 +297,24 @@ describe("GET /users/:username", function () {
     const resp = await request(app)
       .get(`/users/u1`);
     expect(resp.statusCode).toEqual(401);
+    expect(resp.body).toEqual({
+      error: {
+        message: "Unauthorized",
+        status: 401
+      }
+    });
   });
 
   test("not found if user not found with valid admin token", async function () {
     const resp = await request(app)
       .get(`/users/nope`)
       .set("authorization", `Bearer ${u4AdminToken}`);
-    expect(resp.statusCode).toEqual(404);
+    expect(resp.statusCode).toEqual(404); expect(resp.body).toEqual({
+      error: {
+        message: "No user: nope",
+        status: 404
+      }
+    });
   });
 
   test("not found if user not found with valid user token", async function () {
@@ -287,6 +327,12 @@ describe("GET /users/:username", function () {
       .get(`/users/u1`)
       .set("authorization", `Bearer ${u1Token}`);
     expect(resp.statusCode).toEqual(404);
+    expect(resp.statusCode).toEqual(404); expect(resp.body).toEqual({
+      error: {
+        message: "No user: u1",
+        status: 404
+      }
+    });
   });
 });
 
@@ -509,6 +555,12 @@ describe("DELETE /users/:username", function () {
       .set("authorization", `Bearer ${u2Token}`);
 
     expect(resp.statusCode).toEqual(401);
+    expect(resp.body).toEqual({
+      error: {
+        message: "Unauthorized",
+        status: 401
+      }
+    });
 
     const userRes = await db.query(
       `SELECT username
@@ -522,6 +574,12 @@ describe("DELETE /users/:username", function () {
     const resp = await request(app)
       .delete(`/users/u1`);
     expect(resp.statusCode).toEqual(401);
+    expect(resp.body).toEqual({
+      error: {
+        message: "Unauthorized",
+        status: 401
+      }
+    });
   });
 
   test("not found if user missing", async function () {
@@ -529,6 +587,12 @@ describe("DELETE /users/:username", function () {
       .delete(`/users/nope`)
       .set("authorization", `Bearer ${u4AdminToken}`);
     expect(resp.statusCode).toEqual(404);
+    expect(resp.body).toEqual({
+      error: {
+        message: "No user: nope",
+        status: 404
+      }
+    });
   });
 
   test("not found with valid token if user already deleted", async function () {
@@ -541,5 +605,11 @@ describe("DELETE /users/:username", function () {
       .delete(`/users/u1`)
       .set("authorization", `Bearer ${u1Token}`);
     expect(resp.statusCode).toEqual(404);
+    expect(resp.body).toEqual({
+      error: {
+        message: "No user: u1",
+        status: 404
+      }
+    });
   });
 });

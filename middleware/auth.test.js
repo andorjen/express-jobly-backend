@@ -122,6 +122,17 @@ describe("ensureAdmin", function () {
 
 
 describe("ensureUserOrAdmin", function () {
+
+  test("unauth if no user logged in", function () {
+    expect.assertions(1);
+    const req = {};
+    const res = { locals: {} };
+    const next = function (err) {
+      expect(err instanceof UnauthorizedError).toBeTruthy();
+    };
+    ensureUserOrAdmin(req, res, next);
+  });
+
   test("works for admin when no password in body", function () {
     expect.assertions(1);
     const req = {

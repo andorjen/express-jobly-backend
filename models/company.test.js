@@ -56,7 +56,7 @@ describe("create", function () {
   });
 });
 
-/************************************** findAll */
+/************************************** findAll with filter search*/
 
 describe("findAll", function () {
   test("works: no filter", async function () {
