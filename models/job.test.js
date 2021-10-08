@@ -151,7 +151,7 @@ describe("test helper function _makeWhereClause", function () {
 
         });
         expect(result).toEqual({
-            whereClause: "title ILIKE $1 AND salary >= $2 AND CAST(equity AS FLOAT) > 0.0",
+            whereClause: "title ILIKE $1 AND salary >= $2 AND equity > 0.0",
             values: ["%test%", 1000]
         });
     });
@@ -164,7 +164,7 @@ describe("test helper function _makeWhereClause", function () {
 
         });
         expect(result).toEqual({
-            whereClause: "title ILIKE $1 AND salary >= $2 AND id=id",
+            whereClause: "title ILIKE $1 AND salary >= $2 AND 1=1",
             values: ["%test%", 1000]
         });
     });

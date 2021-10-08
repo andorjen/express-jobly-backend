@@ -8,7 +8,7 @@ const jsonschema = require("jsonschema");
 const express = require("express");
 
 const { BadRequestError } = require("../expressError");
-const { ensureLoggedIn, ensureAdmin } = require("../middleware/auth");
+const { ensureAdmin } = require("../middleware/auth");
 const Job = require("../models/job");
 
 const jobNewSchema = require("../schemas/jobNew.json");
@@ -51,43 +51,46 @@ router.post("/", ensureAdmin, async function (req, res, next) {
 
 router.get("/", async function (req, res, next) {
 
-    if (Object.keys(req.query).length > 0) {
-        const validator = jsonschema.validate(req.query, jobFilterSchema);
-
-        if (!validator.valid) {
-            const errs = validator.errors.map(e => e.stack);
-            throw new BadRequestError(errs);
-        }
-
-        let { title, minSalary, hasEquity } = req.query;
-
-        let searchTerms = {};
-
-        if (title) {
-            searchTerms["title"] = title;
-        }
-        if (minSalary) {
-            if (Number(minSalary) && Number(minSalary) > 0) {
-                searchTerms["minSalary"] = Number(minSalary);
-            } else {
-                throw new BadRequestError("minSalary must be a number");
-            }
-        }
-        if (hasEquity) {
-
-            if (hasEquity === "true" || hasEquity === "false") {
-                searchTerms["hasEquity"] = hasEquity;
-            } else {
-                throw new BadRequestError("hasEquity must be a boolean");
-            }
-        }
-
-        const jobs = await Job.filterSearch(searchTerms);
+    //simple case no filtering
+    if (Object.keys(req.query).length === 0) {
+        const jobs = await Job.findAll();
         return res.json({ jobs });
     }
 
-    const jobs = await Job.findAll();
+    const validator = jsonschema.validate(req.query, jobFilterSchema);
+
+    if (!validator.valid) {
+        const errs = validator.errors.map(e => e.stack);
+        throw new BadRequestError(errs);
+    }
+
+    const { title, minSalary, hasEquity } = req.query;
+
+    let searchTerms = {};
+
+    if (title) {
+        searchTerms["title"] = title;
+    }
+    if (minSalary) {
+        if (Number(minSalary) && Number(minSalary) > 0) {
+            searchTerms["minSalary"] = Number(minSalary);
+        } else {
+            throw new BadRequestError("minSalary must be a number");
+        }
+    }
+    if (hasEquity) {
+
+        if (hasEquity === "true" || hasEquity === "false") {
+            searchTerms["hasEquity"] = hasEquity;
+        } else {
+            throw new BadRequestError("hasEquity must be a boolean");
+        }
+    }
+
+    const jobs = await Job.filterSearch(searchTerms);
     return res.json({ jobs });
+
+
 
 });
 

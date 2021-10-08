@@ -86,30 +86,29 @@ class Job {
     static _makeWhereClause(searchTerms) {
         let clauses = [];
         let values = [];
-        let indexPointer = 0;
 
         const { title, minSalary, hasEquity } = searchTerms;
 
         //check for each item in searchTerms, add corresponding clauses and values to array
         if (title) {
-            clauses.push(`title ILIKE $${indexPointer + 1}`);
-            values[indexPointer] = `%${title}%`;
-            indexPointer += 1;
+            clauses.push(`title ILIKE $${values.length + 1}`);
+            values.push(`%${title}%`)
         }
 
         if (minSalary) {
-            clauses.push(`salary >= $${indexPointer + 1}`);
-            values[indexPointer] = minSalary;
-            indexPointer += 1;
+            clauses.push(`salary >= $${values.length + 1}`);
+            values.push(minSalary);
         }
 
         if (hasEquity === "true") {
-            clauses.push(`CAST(equity AS FLOAT) > 0.0`);
+            clauses.push(`equity > 0.0`);
+        } else {
+            clauses.push(`1=1`);
         }
 
-        if (hasEquity === "false") {
-            clauses.push(`id=id`);    // if hasEquity is "false", pass in a generic statament so it will include all
-        }                            // this will prevent from having an empty where clause for search query
+
+        // if hasEquity is "false", pass in a generic statament so it will include all
+        // this will prevent from having an empty where clause for search query
 
         //join all clauses to be one string connected by "AND"
         const whereClause = clauses.join(" AND ")
