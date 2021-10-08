@@ -83,6 +83,27 @@ describe("create", function () {
             },
         ]);
     });
+
+    test("fails with invalid companyHandle", async function () {
+        try {
+            const resp = await Job.create({
+                title: "new job",
+                salary: 30000,
+                equity: 0.003,
+                companyHandle: "not-exist"
+            });
+            fail();
+        } catch (err) {
+            expect(err instanceof BadRequestError).toBeTruthy();
+        }
+
+
+        const result = await db.query(
+            `SELECT title, salary, equity, company_handle
+           FROM jobs
+           WHERE title='new job' AND salary=30000`);
+        expect(result.rows).toEqual([]);
+    });
 });
 
 /************************************** findAll */
@@ -126,11 +147,11 @@ describe("test helper function _makeWhereClause", function () {
         const result = Job._makeWhereClause({
             title: "test",
             minSalary: 1000,
-            hasEquity: true
+            hasEquity: "true"
 
         });
         expect(result).toEqual({
-            whereClause: "title ILIKE $1 AND salary >= $2 AND CAST(equity AS FLOAT) > 0",
+            whereClause: "title ILIKE $1 AND salary >= $2 AND CAST(equity AS FLOAT) > 0.0",
             values: ["%test%", 1000]
         });
     });
@@ -139,11 +160,11 @@ describe("test helper function _makeWhereClause", function () {
         const result = Job._makeWhereClause({
             title: "test",
             minSalary: 1000,
-            hasEquity: false
+            hasEquity: "false"
 
         });
         expect(result).toEqual({
-            whereClause: "title ILIKE $1 AND salary >= $2",
+            whereClause: "title ILIKE $1 AND salary >= $2 AND id=id",
             values: ["%test%", 1000]
         });
     });
@@ -181,7 +202,7 @@ describe("filterSearch", function () {
     test("works with two filters", async function () {
         const jobs = await Job.filterSearch({
             minSalary: 1500,
-            hasEquity: false
+            hasEquity: "false"
         });
         expect(jobs).toEqual([
             {
@@ -205,7 +226,7 @@ describe("filterSearch", function () {
         const jobs = await Job.filterSearch({
             title: "test",
             minSalary: 800,
-            hasEquity: true
+            hasEquity: "true"
         });
         expect(jobs).toEqual([
             {
@@ -312,9 +333,10 @@ describe("update", function () {
 
     test("bad request with no data", async function () {
         try {
-            await Job.update(`${testJobId1}`, {});
+            await Job.update(testJobId1, {});
             fail();
         } catch (err) {
+            // console.log("hit badrequest error")
             expect(err instanceof BadRequestError).toBeTruthy();
         }
     });

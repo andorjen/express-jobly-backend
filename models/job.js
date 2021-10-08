@@ -15,19 +15,23 @@ class Job {
      *
      * Returns { id, title, salary, equity, company_handle }
      *
+     * if company_handle doesn't exixt in database, throw BadRequestError
      * */
 
     static async create({ title, salary, equity, companyHandle }) {
+        const validCompanyCheck = await db.query(
+            `SELECT handle
+             FROM companies
+             WHERE handle = $1`,
+            [companyHandle]);
+
+        if (validCompanyCheck.rows.length === 0)
+            throw new BadRequestError(`Invalid company handle: ${companyHandle}`);
 
         const result = await db.query(
-            `INSERT INTO jobs(
-                            title,
-                            salary,
-                            equity,
-                            company_handle)
-            VALUES
-            ($1, $2, $3, $4)
-           RETURNING id, title, salary, equity, company_handle AS "companyHandle"`,
+            `INSERT INTO jobs(title, salary, equity, company_handle)
+            VALUES ($1, $2, $3, $4)
+            RETURNING id, title, salary, equity, company_handle AS "companyHandle"`,
             [title, salary, equity, companyHandle],
         );
         const job = result.rows[0];
@@ -57,9 +61,11 @@ class Job {
      */
 
     static async filterSearch(searchTerms) {
+        // console.log(searchTerms, "search terms");
 
         const { whereClause, values } = Job._makeWhereClause(searchTerms);
 
+        // console.log(whereClause, "where clause");
         const jobs = await db.query(
             `SELECT id, title, salary, equity, company_handle AS "companyHandle"
               FROM jobs
@@ -73,7 +79,7 @@ class Job {
     /** helper function that takes an object of searchTerms, 
      * creates where clasues to be used in db queries, and an array of values with corresponding clause
      * searchTerms should at most contain three keys: title, minSalary, hasEquity
-     * if hasEquity is true, search for non-zero valuesm, if false, ignore
+     * if hasEquity is true, search for non-zero equity values, if false, search all 
      * 
      * return {whereClause:`title=$1 AND salary>=$2`, values: [...]}
      */
@@ -97,13 +103,16 @@ class Job {
             indexPointer += 1;
         }
 
-        if (hasEquity === true) {
-            clauses.push(`CAST(equity AS FLOAT) > 0`);
+        if (hasEquity === "true") {
+            clauses.push(`CAST(equity AS FLOAT) > 0.0`);
         }
+
+        if (hasEquity === "false") {
+            clauses.push(`id=id`);    // if hasEquity is "false", pass in a generic statament so it will include all
+        }                            // this will prevent from having an empty where clause for search query
 
         //join all clauses to be one string connected by "AND"
         const whereClause = clauses.join(" AND ")
-
         return { whereClause, values };
     }
 
@@ -116,6 +125,7 @@ class Job {
      **/
 
     static async get(id) {
+
         const jobRes = await db.query(
             `SELECT id, title, salary, equity, company_handle AS "companyHandle"
             FROM jobs
