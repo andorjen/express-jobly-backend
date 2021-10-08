@@ -117,6 +117,7 @@ router.get("/:id", async function (req, res, next) {
  */
 
 router.patch("/:id", ensureAdmin, async function (req, res, next) {
+    // console.log("hit patch route")
     const validator = jsonschema.validate(req.body, jobUpdateSchema);
     if (!validator.valid) {
         const errs = validator.errors.map(e => e.stack);

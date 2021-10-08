@@ -161,7 +161,7 @@ describe("GET /jobs", function () {
         expect(resp.body).toEqual({
             jobs: [
                 {
-                    id: expect.any(Number),
+                    id: jobId1,
                     title: 'testJob1',
                     salary: 1000,
                     equity: "0",
@@ -197,3 +197,232 @@ describe("GET /jobs", function () {
         expect(resp.statusCode).toEqual(500);
     });
 });
+
+/*********************************** GET /jobs with filters  */
+describe("GET /jobs with filters", function () {
+
+    test("ok for anon with one filters", async function () {
+        const resp = await request(app).get("/jobs?title=job2");
+        expect(resp.body).toEqual({
+            jobs: [
+                {
+                    id: expect.any(Number),
+                    title: 'testJob2',
+                    salary: 2000,
+                    equity: "0.002",
+                    companyHandle: 'c2'
+                }
+            ]
+        });
+    });
+
+    test("ok for anon with only hasEquity false filter", async function () {
+        const resp = await request(app).get("/jobs?hasEquity=false");
+        expect(resp.body).toEqual({
+            jobs: [
+                {
+                    id: jobId1,
+                    title: 'testJob1',
+                    salary: 1000,
+                    equity: "0",
+                    companyHandle: 'c1'
+                },
+                {
+                    id: expect.any(Number),
+                    title: 'testJob2',
+                    salary: 2000,
+                    equity: "0.002",
+                    companyHandle: 'c2'
+                },
+                {
+                    id: expect.any(Number),
+                    title: 'testJob3',
+                    salary: 3000,
+                    equity: null,
+                    companyHandle: 'c3'
+                }
+            ]
+        });
+    });
+
+    test("okay for anon with three filters", async function () {
+        const resp = await request(app).get("/jobs?hasEquity=true&minSalary=1500&title=job");
+        expect(resp.body).toEqual({
+            jobs: [
+                {
+                    id: expect.any(Number),
+                    title: 'testJob2',
+                    salary: 2000,
+                    equity: "0.002",
+                    companyHandle: 'c2'
+                }
+            ]
+        });
+    });
+
+    test("bad req for passing in extra filters", async function () {
+        const resp = await request(app).get("/jobs?title=job&color=red");
+        expect(resp.body).toEqual({
+            error: {
+                message: ["instance is not allowed to have the additional property \"color\""],
+                status: 400
+            }
+        });
+    });
+
+});
+
+/******************************************  GET /jobs/:id   */
+describe("GET /jobs/:id", function () {
+    test("ok for anon with valid job id", async function () {
+        const resp = await request(app).get(`/jobs/${jobId1}`);
+        expect(resp.body).toEqual({
+            job: {
+                id: jobId1,
+                title: 'testJob1',
+                salary: 1000,
+                equity: "0",
+                companyHandle: 'c1'
+            }
+        });
+    });
+
+    test("not found for anon with invalid job id", async function () {
+        const resp = await request(app).get("/jobs/9999999");
+        expect(resp.body).toEqual({
+            error: {
+                message: "No job id: 9999999",
+                status: 404
+            }
+        });
+    });
+});
+
+/******************************************  GET /jobs/:id   */
+describe("PATCH /jobs/:id", function () {
+    test("ok for admin with valid data", async function () {
+        const resp = await request(app)
+            .patch(`/jobs/${jobId1}`)
+            .send({
+                "title": "new-job",
+                "salary": 9999999
+            })
+            .set("authorization", `Bearer ${u4AdminToken}`);
+
+        expect(resp.body).toEqual({
+            job: {
+                id: jobId1,
+                title: "new-job",
+                salary: 9999999,
+                equity: "0",
+                companyHandle: 'c1'
+            }
+        });
+
+        const resp2 = await request(app).get(`/jobs/${jobId1}`);
+        expect(resp2.body).toEqual({
+            job: {
+                id: jobId1,
+                title: "new-job",
+                salary: 9999999,
+                equity: "0",
+                companyHandle: 'c1'
+            }
+        });
+    });
+
+    test("unauthorized for non-admin with valid data", async function () {
+        const resp = await request(app)
+            .patch(`/jobs/${jobId1}`)
+            .send({
+                "title": "new-job",
+                "salary": 9999999
+            })
+            .set("authorization", `Bearer ${u1Token}`);
+
+        expect(resp.body).toEqual({
+            error: {
+                message: "Unauthorized",
+                status: 401
+            }
+        });
+    });
+
+    test("bad request for admin with invalid data", async function () {
+        const resp = await request(app)
+            .patch(`/jobs/${jobId1}`)
+            .send({
+                "id": 67890123,
+                "title": "new-job",
+                "salary": 9999999,
+                "companyHandle": "new company"
+            })
+            .set("authorization", `Bearer ${u4AdminToken}`);
+
+        expect(resp.body).toEqual({
+            error: {
+                message: [
+                    "instance is not allowed to have the additional property \"id\"",
+                    "instance is not allowed to have the additional property \"companyHandle\""
+                ],
+                status: 400
+            }
+        });
+    });
+
+    test("bad request for admin with no data", async function () {
+        const resp = await request(app)
+            .patch(`/jobs/${jobId1}`)
+            .send({})
+            .set("authorization", `Bearer ${u4AdminToken}`);
+
+        expect(resp.body).toEqual({
+            error: {
+                message: "No data",
+                status: 400
+            }
+        });
+    });
+
+});
+
+/******************************************  DELETE /jobs/:id   */
+describe("DELETE /jobs:id", function () {
+    test("ok for admin", async function () {
+        const resp = await request(app)
+            .delete(`/jobs/${jobId1}`)
+            .set("authorization", `Bearer ${u4AdminToken}`);
+        expect(resp.body).toEqual({ deleted: `${jobId1}` });
+
+        const resp2 = await request(app).get(`/jobs/${jobId1}`);
+        expect(resp2.body).toEqual({
+            error: {
+                message: `No job id: ${jobId1}`,
+                status: 404
+            }
+        })
+    })
+
+    test("unauth for regular users", async function () {
+        const resp = await request(app)
+            .delete(`/jobs/${jobId1}`)
+            .set("authorization", `Bearer ${u1Token}`);
+        expect(resp.body).toEqual({
+            error: {
+                message: "Unauthorized",
+                status: 401
+            }
+        });
+
+        const resp2 = await request(app).get(`/jobs/${jobId1}`);
+        expect(resp2.body).toEqual({
+            job: {
+                id: jobId1,
+                title: 'testJob1',
+                salary: 1000,
+                equity: "0",
+                companyHandle: 'c1'
+            }
+        })
+    })
+})
